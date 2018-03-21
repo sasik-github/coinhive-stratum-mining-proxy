@@ -6,7 +6,7 @@ Pros: no dev fee, adblock bypass, use any pool you like.
 
 ## Installation
 
-Run on Docker:
+Run on Docker ([docker hub repository](https://hub.docker.com/r/0x25/coinhive-stratum-mining-proxy/)):
 
 ```sh
 $ git clone https://github.com/x25/coinhive-stratum-mining-proxy.git
@@ -98,6 +98,7 @@ Run script with ```--ssl=key.pem:cert.pem``` parameter:
 ```sh
 python coinhive-stratum-mining-proxy.py <stratum tcp host> <stratum tcp port> --ssl=key.pem:cert.pem
 ```
+If you use the Let's Encrypt generated certificates or if you see the error NET::ERR_CERT_AUTHORITY_INVALID in the browser, you should find the intermediate (a.k.a. chain.pem) certificates and run the script with ```--ssl=key.pem:cert.pem:chain.pem``` parameters.
 
 ## Statistic
 

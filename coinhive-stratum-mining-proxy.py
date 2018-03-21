@@ -42,6 +42,9 @@ from twisted.python import log
 def toJson(obj):
     return json.dumps(obj).encode("utf-8")
 
+def fromJson(str):
+    return json.loads(str.decode('utf-8'))
+
 class Container:
 
     def __init__(self):
@@ -96,7 +99,7 @@ class ProxyClient(twisted.protocols.basic.LineOnlyReceiver):
 
     def lineReceived(self, line):
         log.msg('Server -> Queue: %s' % line)
-        data = json.loads(line)
+        data = fromJson(line)
         if data.get("id") == 1:
           self.factory.di.workerId = data.get("result").get("id")
           self.factory.di.to_client.put(b'{"type":"authed","params":{"token":"","hashes":0}}')
@@ -143,7 +146,7 @@ class ProxyServer(autobahn.twisted.websocket.WebSocketServerProtocol):
         else:
             log.msg('Queue -> Client: %s' % str(data))
             self.sendMessage(data, False)
-            mData = json.loads(data)
+            mData = fromJson(data)
             #{"params": {"hashes": 1}, "type": "hash_accepted"}
             if mData["type"] == "hash_accepted":
               details["total_hashes"] += 1
@@ -152,7 +155,7 @@ class ProxyServer(autobahn.twisted.websocket.WebSocketServerProtocol):
 
     def onMessage(self, data, isBinary):
         log.msg('Client -> Queue (%s): %s' % ('binary' if isBinary else 'text', str(data)))
-        data = json.loads(data)
+        data = fromJson(data)
         if data.get('type') == 'auth':
             login = data['params']['site_key']
             if data['params'].get('user'):
@@ -180,7 +183,7 @@ class SimpleStats(twisted.web.resource.Resource):
     def render_GET(self, request):
         passwd = request.args.get("password", None)
         if (passwd and passwd[0] == self.passwd) or not self.passwd:
-          self.details["uptime"] = time.time() - self.boot_time  
+          self.details["uptime"] = time.time() - self.boot_time
           return toJson(details)
         request.setResponseCode(403)
         return toJson({"error": "unauthorized"})
@@ -195,7 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("pool_host", metavar="host", help="stratum tcp host")
     parser.add_argument("pool_port", metavar="stratum_port", help="stratum tcp port", type=int, choices=range(1,65535))
     parser.add_argument("--websocket_port", metavar="PORT", help="port to listen for websocket clients", type=int, choices=range(1,65535), default=8892)
-    parser.add_argument("--ssl", help="Enables SSL for Websocket clients. (privatekey:certificate)", metavar="CERTIFICATES", dest="ssl")
+    parser.add_argument("--ssl", help="Enables SSL for Websocket clients. (privatekey:certificate[:chain])", metavar="CERTIFICATES", dest="ssl")
     parser.add_argument("--pool_pass", help="stratum auth password (Default: x)", default="x")
     parser.add_argument("--password", help="Password for the stats page (Default: No password)", default=None)
 
@@ -218,11 +221,18 @@ if __name__ == "__main__":
 
     if arguments["ssl"]:
       import OpenSSL
+      from OpenSSL import crypto
       try:
-        contextFactory = ssl.DefaultOpenSSLContextFactory(arguments["ssl"].split(":")[0], arguments["ssl"].split(":")[1])
+        splitted = arguments["ssl"].split(":")
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, open(splitted[0], 'rt').read())
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, open(splitted[1], 'rt').read())
+        chain = None
+        if len(splitted) == 3:
+          chain = [crypto.load_certificate(crypto.FILETYPE_PEM, open(splitted[2], 'rt').read())]
+        contextFactory = ssl.CertificateOptions(privateKey=key, certificate=cert, extraCertChain=chain)
         twisted.internet.reactor.listenSSL(arguments["websocket_port"], requestFactory, contextFactory)
-      except OpenSSL.SSL.Error:
-        print("Invalid privatekey:certificate pair")
+      except (OpenSSL.SSL.Error, IOError):
+        print("Invalid privatekey:certificate[:chain]")
         sys.exit(1)
     else:
       twisted.internet.reactor.listenTCP(arguments["websocket_port"], requestFactory)
