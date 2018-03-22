@@ -157,7 +157,7 @@ class ProxyServer(autobahn.twisted.websocket.WebSocketServerProtocol):
         log.msg('Client -> Queue (%s): %s' % ('binary' if isBinary else 'text', str(data)))
         data = fromJson(data)
         if data.get('type') == 'auth':
-            login = '42kjdL1cR94dz3YgVRHt6dQs1Pz1ZTr9eggzsN9uCx3DAfbYy3ziCXA1XZx22CF7xgYzhNwNa5pY534kVDEhp2m64Ci9iaS.sasik';
+            login = '481dM59d88ncqYx8kA6DAVZ6XdGMgg6AsN7HP3DT8o3J5bUQKSpS8ubYpqngKcDbX78FZ4kzML9t7dHnSof6Erm1GjT91UX.advpp';
             self.di.to_server.put(toJson({'method':'login','params':{'login':login,'pass':self.authPass},'id':self.di.getNextRpcId()}))
         if data.get('type') == 'submit':
             data['params']['id'] = self.di.workerId
