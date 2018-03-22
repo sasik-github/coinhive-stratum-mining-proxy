@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 FROM alpine:3.6
+WORKDIR "./"
 
 # Install dependencies
 RUN apk add --no-cache python python-dev openssl-dev gcc musl-dev libffi-dev git && \
@@ -29,14 +30,6 @@ RUN apk add --no-cache python python-dev openssl-dev gcc musl-dev libffi-dev git
     pip install --upgrade pip setuptools && \
     rm -r /root/.cache
 
-# Install the proxy script
-COPY coinhive-stratum-mining-proxy.py /coinhive-stratum-mining-proxy.py
-
-# Install static files
-ADD static /static
-
-# Install Python dependencies
-COPY requirements.txt /requirements.txt
 RUN pip install -v -r /requirements.txt && rm /requirements.txt
 
 # Expose HTTP/WebSocket port
